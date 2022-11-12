@@ -4,6 +4,7 @@ import random
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.tree import DecisionTreeClassifier
+from scipy import stats
 
 #tree = DecisionTreeClassifier()
 #type(tree)
