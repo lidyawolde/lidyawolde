@@ -1,0 +1,115 @@
+#!/usr/bin/python3
+# Homework 4 Code
+import random
+import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.tree import DecisionTreeClassifier
+
+#tree = DecisionTreeClassifier()
+#type(tree)
+
+def bagged_trees(X_train, Y_train, X_test, Y_test, num_bags):
+    # The `bagged_tree` function learns an ensemble of numBags decision trees 
+    # and also plots the  out-of-bag error as a function of the number of bags
+    #
+    # % Inputs:
+    # % * `X_train` is the training data
+    # % * `y_train` are the training labels
+    # % * `X_test` is the testing data
+    # % * `y_test` are the testing labels
+    # % * `num_bags` is the number of trees to learn in the ensemble
+    #
+    # % Outputs:
+    # % * `out_of_bag_error` is the out-of-bag classification error of the final learned ensemble
+    # % * `test_error` is the classification error of the final learned ensemble on test data
+    #
+    # % Note: You may use sklearns 'DecisonTreeClassifier'
+    # but **not** 'RandomForestClassifier' or any other bagging function
+
+    n =X_train.shape[0] #the number of rows represents number of data points
+    trees = []  #list of trees
+    predictions = [] #list of predictions
+    l =[[] for i in range(n)] # a list of list with length n
+    
+    for _ in range(num_bags): #run a loop for some number of times
+        r = random.choices(range(0,n),k=n) #pick random n random indices from 0, n with replacement
+        Inx= X_train[r] #get the features of that randomly picked data point
+        x_out_bag_index = np.setdiff1d(range(0,n),r) #the index of the data point that is out of bag error
+        OOBx = X_train[x_out_bag_index] #the data point that is out of bag 
+        Iny = Y_train[r] #get the the label of randomly picked data point
+        OOBy= Y_train[x_out_bag_index] #get the label of of the out of bag 
+        tree = DecisionTreeClassifier(criterion ="entropy") # initialize a tree based on the entropy
+        tree.fit(Inx,Iny) #fit the estimator so it can be used to predict for new data point
+       
+        for i in x_out_bag_index: #for each 
+            l[i].append(tree.predict(X_train[[i]]))
+        trees.append(tree)
+        
+        prediction =tree.predict(X_test) #prediction for single tree
+        predictions.append(prediction) #all the decisions
+
+    predictions = np.array(predictions).T #transpose it so the rows are n data point
+
+    accuracy = []
+    #val = 0.0
+    for i in range(n):
+        if len(l[i])>0:
+            accuracy.append(stats.mode(l[i]).mode[0][0]==Y_train[i])#get the mode from the predictions made by all the outta bag data set
+    out_of_bag_error =  1-np.mean(accuracy)
+    
+    y_pred =[]
+    for i in range(0,predictions.shape[0]):
+        y_pred.append(stats.mode(predictions[i,:]).mode[0])
+    test_error = np.mean(np.array(y_pred)!=Y_test)
+
+    return out_of_bag_error, test_error
+
+def main_hw4():
+    # Load data
+    og_train_data = np.genfromtxt('zip.train')
+    og_test_data = np.genfromtxt('zip.test')
+    ## Split the training data from X and Y containing 1 and 3 features
+    three_vs_one_train = og_train_data[np.logical_or(og_train_data[:,0] == 3 , og_train_data[:,0] == 1)]
+    X1_train = three_vs_one_train[:,1:]
+    Y1_train = three_vs_one_train[:,0]
+    ## Split the training data from X and Y containing 1 and 3 features
+    three_vs_one_test = og_test_data[np.logical_or(og_test_data[:,0] == 3 , og_test_data[:,0] == 1)]
+    X1_test = three_vs_one_test[:,1:]
+    Y1_test = three_vs_one_test[:,0]
+    ## Split the training data from X and Y containing 3 and 5 features
+    three_vs_five_train = og_train_data[np.logical_or(og_train_data[:,0] == 3 , og_train_data[:,0] == 5)]
+    X5_train = three_vs_five_train[:,1:] 
+    Y5_train = three_vs_five_train[:,0]
+    ## Split the testing data from X and Y containing 3 and 5 features
+    three_vs_five_test = og_test_data[np.logical_or(og_test_data[:,0]==3,og_test_data[:,0]==5)]
+    X5_test = three_vs_five_test[:,1:]
+    Y5_test = three_vs_five_test[:,0]
+    
+    num_bags = 200
+
+    # Split data
+    X_train =  X1_train 
+    y_train = Y1_train
+    X_test = X1_test 
+    y_test =  Y1_test
+
+    # Run bagged trees
+    out_of_bag_error, test_error = bagged_trees(X_train, y_train, X_test, y_test, num_bags)
+   # train_error, test_error = single_decision_tree(X_train, y_train, X_test, y_test)
+    print("Out of Bag Error = " , out_of_bag_error)
+    print("Test Error = ", test_error)
+    
+    y = []
+    x =[]
+    for num_bags in range(1,201):
+        y.append(bagged_trees(X_train, y_train, X_test, y_test, num_bags)[0]) #plot the out of bag error
+        x.append(num_bags)
+    plt.plot(x,y)
+    plt.legend(["OOB Error"])
+    plt.xlabel("Number of Bags")
+    plt.ylabel("OOB error")
+    plt.show()
+    
+if __name__ == "__main__":
+    main_hw4()
+
